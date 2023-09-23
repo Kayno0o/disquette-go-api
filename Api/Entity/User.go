@@ -20,7 +20,6 @@ type User struct {
 
 type UserContext struct {
 	Username string `json:"username"`
-	Email    string `json:"email"`
 }
 
 type Login struct {
