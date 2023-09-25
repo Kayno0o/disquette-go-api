@@ -24,12 +24,12 @@ func RandomFirstName(firstNames []string) string {
 }
 
 func GenerateUsers(nb int, isAdmin bool) []entity.User {
+	password := security.HashPassword("password")
+
 	users := []entity.User{}
 	firstNames := GetFirstNames()
 	for i := 0; i < nb; i++ {
 		firstName := RandomFirstName(firstNames)
-
-		password := security.HashPassword("password")
 
 		role := "ROLE_USER"
 		if isAdmin {

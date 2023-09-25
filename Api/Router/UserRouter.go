@@ -2,6 +2,7 @@ package router
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/Api/Entity"
@@ -23,23 +24,56 @@ func (ur *UserRouterInterface) RegisterUserRoutes(r fiber.Router) {
 		Roles:    []string{"ROLE_ADMIN"},
 	})
 
-	r.Post("/user/login", ur.Login)
-	r.Post("/user/register", ur.Register)
+	r.Post(
+		"/user/login",
+		ur.Login,
+	).Post(
+		"/user/register",
+		ur.Register,
+	)
 
 	// ADMIN
-	admin := r.Group("", middleware.IsLoggedIn, middleware.IsGranted([]string{"ROLE_ADMIN"}))
-
-	admin.Get("/users/fixture/:amount", ur.Fixture)
+	r.Group(
+		"",
+		middleware.IsLoggedIn,
+		middleware.IsGranted([]string{"ROLE_ADMIN"}),
+	).Get(
+		"/users/fixture/:amount",
+		ur.Fixture,
+	)
 
 	// LOGGED
-	logged := r.Group("", middleware.IsLoggedIn, middleware.IsGranted([]string{"ROLE_USER"}))
-
-	logged.Get("/user/me", ur.Me)
+	r.Group(
+		"",
+		middleware.IsLoggedIn,
+		middleware.IsGranted([]string{"ROLE_USER"}),
+	).Get(
+		"/user/me",
+		ur.Me,
+	)
 
 	// PUBLIC
-	r.Get("/users", FindAll(repository.UserRepository, &[]entity.User{}))
-	r.Get("/users/count", CountAll(repository.UserRepository, &entity.User{}))
-	r.Get("/user/:id", FindOne(repository.UserRepository, &entity.User{}))
+	r.Get(
+		"/users",
+		FindAll(
+			repository.UserRepository,
+			&[]entity.User{},
+			&[]entity.UserContext{},
+		),
+	).Get(
+		"/users/count",
+		CountAll(
+			repository.UserRepository,
+			&entity.User{},
+		),
+	).Get(
+		"/user/:id",
+		FindOne(
+			repository.UserRepository,
+			&entity.User{},
+			&entity.UserContext{},
+		),
+	)
 }
 
 func (r *UserRouterInterface) Login(c *fiber.Ctx) error {
@@ -62,12 +96,12 @@ func (r *UserRouterInterface) Login(c *fiber.Ctx) error {
 }
 
 func (r *UserRouterInterface) Register(c *fiber.Ctx) error {
-	var user entity.User
 	var form entity.Register
 	if err := c.BodyParser(&form); err != nil {
 		return c.SendStatus(400)
 	}
 
+	var user entity.User
 	user.Username = form.Username
 	user.Email = form.Email
 
@@ -83,6 +117,17 @@ func (r *UserRouterInterface) Register(c *fiber.Ctx) error {
 	if err != nil {
 		return c.SendStatus(500)
 	}
+
+	// add token to session/cookies
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    token.Token,
+		Path:     "/",
+		Expires:  token.ExpiresAt,
+		HTTPOnly: true,
+		Domain:   "disquette.kayn.ooo",
+		Secure:   true,
+	})
 
 	return c.JSON(token)
 }
@@ -105,4 +150,18 @@ func (r *UserRouterInterface) Me(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(user)
+}
+
+func (r *UserRouterInterface) Logout(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Domain:   "disquette.kayn.ooo",
+		Secure:   true,
+	})
+
+	return c.SendStatus(200)
 }

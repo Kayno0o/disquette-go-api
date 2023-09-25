@@ -9,6 +9,7 @@ import (
 	trait "go-api-test.kayn.ooo/Api/Entity/Trait"
 	middleware "go-api-test.kayn.ooo/Api/Middleware"
 	repository "go-api-test.kayn.ooo/Api/Repository"
+	utils "go-api-test.kayn.ooo/Api/Utils"
 )
 
 var (
@@ -38,7 +39,7 @@ func queryToParams(c *fiber.Ctx) map[string]interface{} {
 	return params
 }
 
-func FindOne(rep repository.GenericRepositoryInterface, entity trait.EntityInterface) func(c *fiber.Ctx) error {
+func FindOne(rep repository.GenericRepositoryInterface, entity trait.IdentifierInterface, context interface{}) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		id, err := strconv.Atoi(c.Params("id"))
 		if err != nil {
@@ -48,11 +49,12 @@ func FindOne(rep repository.GenericRepositoryInterface, entity trait.EntityInter
 		if entity.GetId() == 0 {
 			return c.SendStatus(404)
 		}
-		return c.JSON(entity)
+		utils.ContextOutput(entity, context)
+		return c.JSON(context)
 	}
 }
 
-func FindAll(rep repository.GenericRepositoryInterface, entities interface{}) func(c *fiber.Ctx) error {
+func FindAll(rep repository.GenericRepositoryInterface, entities interface{}, context interface{}) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		params := queryToParams(c)
 		if params["offset"] == nil {
@@ -63,11 +65,12 @@ func FindAll(rep repository.GenericRepositoryInterface, entities interface{}) fu
 		}
 
 		rep.FindAllBy(entities, params)
-		return c.JSON(entities)
+		utils.ContextOutput(entities, context)
+		return c.JSON(context)
 	}
 }
 
-func CountAll(rep repository.GenericRepositoryInterface, entity trait.EntityInterface) func(c *fiber.Ctx) error {
+func CountAll(rep repository.GenericRepositoryInterface, entity trait.IdentifierInterface) func(c *fiber.Ctx) error {
 	return func(c *fiber.Ctx) error {
 		count, err := rep.CountAll(entity)
 		if err != nil {
