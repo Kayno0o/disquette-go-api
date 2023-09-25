@@ -92,6 +92,17 @@ func (r *UserRouterInterface) Login(c *fiber.Ctx) error {
 		return c.SendStatus(500)
 	}
 
+	// add token to session/cookies
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    token.Token,
+		Path:     "/",
+		Expires:  token.ExpiresAt,
+		HTTPOnly: true,
+		Domain:   "disquette.kayn.ooo",
+		Secure:   true,
+	})
+
 	return c.JSON(token)
 }
 

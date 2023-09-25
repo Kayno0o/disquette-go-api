@@ -11,13 +11,17 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 	"github.com/uptrace/bun/extra/bundebug"
-	entity "go-api-test.kayn.ooo/Api/Entity"
 )
 
 var (
-	DB             *bun.DB
-	UserRepository = &UserRepositoryInterface{}
-	Ctx            = context.Background()
+	DB  *bun.DB
+	Ctx = context.Background()
+
+	UserRepository         = &UserRepositoryInterface{}
+	VoteRepository         = &VoteRepositoryInterface{}
+	DisquetteRepository    = &DisquetteRepositoryInterface{}
+	TagRepository          = &TagRepositoryInterface{}
+	DisquetteTagRepository = &DisquetteTagRepositoryInterface{}
 )
 
 type GenericRepositoryInterface interface {
@@ -57,16 +61,11 @@ func (r *GenericRepository) Init() {
 		panic(err)
 	}
 
-	DB.RegisterModel(&entity.User{})
-	_, err = DB.NewCreateTable().Model(&entity.User{}).IfNotExists().Exec(Ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	err = DB.ResetModel(Ctx, &entity.User{})
-	if err != nil {
-		panic(err)
-	}
+	UserRepository.Init()
+	DisquetteRepository.Init()
+	VoteRepository.Init()
+	TagRepository.Init()
+	DisquetteTagRepository.Init()
 }
 
 func (r *GenericRepository) FindOneById(entity interface{}, id int) error {
