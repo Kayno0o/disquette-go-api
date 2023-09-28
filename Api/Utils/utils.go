@@ -13,7 +13,7 @@ func Includes(array []string, search string) bool {
 }
 
 // takes and input entity and output json format
-func ContextOutput(input interface{}, context interface{}) {
+func ApplyContext(input interface{}, context interface{}) {
 	// convert input to json
 	jsonInput, _ := json.Marshal(input)
 
