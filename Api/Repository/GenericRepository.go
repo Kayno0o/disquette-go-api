@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"os"
 	"regexp"
 	"strconv"
@@ -36,7 +37,12 @@ type GenericRepository struct {
 }
 
 func (r *GenericRepository) Init() {
-	sqldb, err := sql.Open("mysql", "test:test@tcp(localhost:3306)/test")
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		fmt.Println("DB_URL environment variable is required")
+		os.Exit(1)
+	}
+	sqldb, err := sql.Open("mysql", dbURL)
 	if err != nil {
 		panic(err)
 	}
