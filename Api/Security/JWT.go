@@ -11,7 +11,8 @@ import (
 )
 
 type JWT struct {
-	Token string `json:"token"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type Claims struct {
@@ -24,11 +25,12 @@ func GenerateToken(user *entity.User) (*JWT, error) {
 	secretKey := []byte(os.Getenv("SECRET_KEY"))
 
 	// Create a new JWT token with the user ID and expiration time
+	exp := time.Now().Add(time.Hour)
 	token := jwt.New(jwt.SigningMethodHS256)
 	claims := token.Claims.(jwt.MapClaims)
 	claims["id"] = user.ID
 	claims["iat"] = time.Now().Unix()
-	claims["exp"] = time.Now().Add(time.Hour * 24).Unix()
+	claims["exp"] = exp.Unix()
 	claims["aud"] = "disquette.kayn.ooo"
 	claims["iss"] = "disquette.kayn.ooo"
 
@@ -37,7 +39,10 @@ func GenerateToken(user *entity.User) (*JWT, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &JWT{Token: tokenString}, nil
+	return &JWT{
+		Token:     tokenString,
+		ExpiresAt: exp,
+	}, nil
 }
 
 func Authenticate(login *entity.Login) (*entity.User, error) {

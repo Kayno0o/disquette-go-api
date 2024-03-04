@@ -1,11 +1,11 @@
 package trait
 
-type EntityInterface interface {
+type IdentifierInterface interface {
 	GetId() int64
 }
 
 type Identifier struct {
-	EntityInterface `bun:"-" json:"-"`
+	IdentifierInterface `bun:"-" json:"-"`
 
 	ID int64 `bun:",pk,autoincrement" json:"id"`
 }

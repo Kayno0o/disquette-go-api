@@ -15,5 +15,7 @@ func main() {
 	rep := repository.GenericRepository{}
 
 	rep.Init()
-	router.Init()
+	router.Init([]router.GenericRouterInterface{
+		&router.UserRouter{},
+	})
 }

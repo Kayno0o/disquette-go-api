@@ -12,6 +12,9 @@ import (
 
 func Authenticate(c *fiber.Ctx) error {
 	tokenString := c.Get("Authorization")
+	if tokenString == "" {
+		tokenString = c.Cookies("token")
+	}
 
 	if tokenString == "" {
 		return c.Next()

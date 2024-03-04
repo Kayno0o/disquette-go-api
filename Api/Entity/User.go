@@ -1,8 +1,6 @@
 package entity
 
 import (
-	"time"
-
 	"github.com/uptrace/bun"
 	trait "go-api-test.kayn.ooo/Api/Entity/Trait"
 )
@@ -10,12 +8,12 @@ import (
 type User struct {
 	bun.BaseModel `bun:"table:user,alias:u"`
 	trait.Identifier
+	trait.Timestampable
 
-	Username  string    `bun:",notnull" json:"username"`
-	Email     string    `bun:",notnull,unique" json:"email"`
-	Password  string    `bun:",notnull" json:"-"`
-	CreatedAt time.Time `bun:",nullzero,default:now()" json:"created_at"`
-	Roles     []string  `bun:",array" json:"roles"`
+	Username string   `bun:",notnull" json:"username"`
+	Email    string   `bun:",notnull,unique" json:"email"`
+	Password string   `bun:",notnull" json:"password"`
+	Roles    []string `bun:",array" json:"roles"`
 }
 
 type UserContext struct {

@@ -2,19 +2,21 @@ package router
 
 import (
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	entity "go-api-test.kayn.ooo/Api/Entity"
 	fixture "go-api-test.kayn.ooo/Api/Fixture"
-	middleware "go-api-test.kayn.ooo/Api/Middleware"
+	group "go-api-test.kayn.ooo/Api/Group"
 	repository "go-api-test.kayn.ooo/Api/Repository"
 	security "go-api-test.kayn.ooo/Api/Security"
 )
 
-type UserRouterInterface struct {
+type UserRouter struct {
+	GenericRouterInterface
 }
 
-func (ur *UserRouterInterface) RegisterUserRoutes(r fiber.Router) {
+func (ur *UserRouter) RegisterRoutes(r fiber.Router) {
 	fixture.GenerateUsers(10, false)
 	repository.UserRepository.Create(&entity.User{
 		Username: "admin",
@@ -23,26 +25,53 @@ func (ur *UserRouterInterface) RegisterUserRoutes(r fiber.Router) {
 		Roles:    []string{"ROLE_ADMIN"},
 	})
 
-	r.Post("/user/login", ur.Login)
-	r.Post("/user/register", ur.Register)
+	r.Post(
+		"/user/login",
+		ur.Login,
+	).Post(
+		"/user/register",
+		ur.Register,
+	)
 
 	// ADMIN
-	admin := r.Group("", middleware.IsLoggedIn, middleware.IsGranted([]string{"ROLE_ADMIN"}))
+	admin := group.AdminGroup(r)
+	admin.Get(
+		"/users/fixture/:amount",
+		ur.Fixture,
+	)
 
-	admin.Get("/users/fixture/:amount", ur.Fixture)
-
-	// LOGGED
-	logged := r.Group("", middleware.IsLoggedIn, middleware.IsGranted([]string{"ROLE_USER"}))
-
-	logged.Get("/user/me", ur.Me)
+	// USER
+	user := group.UserGroup(r)
+	user.Get(
+		"/user/me",
+		ur.Me,
+	)
 
 	// PUBLIC
-	r.Get("/users", FindAll(repository.UserRepository, &[]entity.User{}))
-	r.Get("/users/count", CountAll(repository.UserRepository, &entity.User{}))
-	r.Get("/user/:id", FindOne(repository.UserRepository, &entity.User{}))
+	r.Get(
+		"/users",
+		FindAll(
+			repository.UserRepository,
+			&[]entity.User{},
+			&[]entity.UserContext{},
+		),
+	).Get(
+		"/users/count",
+		CountAll(
+			repository.UserRepository,
+			&entity.User{},
+		),
+	).Get(
+		"/user/:id",
+		FindOne(
+			repository.UserRepository,
+			&entity.User{},
+			&entity.UserContext{},
+		),
+	)
 }
 
-func (r *UserRouterInterface) Login(c *fiber.Ctx) error {
+func (r *UserRouter) Login(c *fiber.Ctx) error {
 	var login entity.Login
 	if err := c.BodyParser(&login); err != nil {
 		return c.SendStatus(400)
@@ -61,13 +90,13 @@ func (r *UserRouterInterface) Login(c *fiber.Ctx) error {
 	return c.JSON(token)
 }
 
-func (r *UserRouterInterface) Register(c *fiber.Ctx) error {
-	var user entity.User
+func (r *UserRouter) Register(c *fiber.Ctx) error {
 	var form entity.Register
 	if err := c.BodyParser(&form); err != nil {
 		return c.SendStatus(400)
 	}
 
+	var user entity.User
 	user.Username = form.Username
 	user.Email = form.Email
 
@@ -84,10 +113,21 @@ func (r *UserRouterInterface) Register(c *fiber.Ctx) error {
 		return c.SendStatus(500)
 	}
 
+	// add token to session/cookies
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    token.Token,
+		Path:     "/",
+		Expires:  token.ExpiresAt,
+		HTTPOnly: true,
+		Domain:   "disquette.kayn.ooo",
+		Secure:   true,
+	})
+
 	return c.JSON(token)
 }
 
-func (r *UserRouterInterface) Fixture(c *fiber.Ctx) error {
+func (r *UserRouter) Fixture(c *fiber.Ctx) error {
 	amount, err := strconv.Atoi(c.Params("amount"))
 	if err != nil {
 		return c.SendStatus(400)
@@ -98,11 +138,25 @@ func (r *UserRouterInterface) Fixture(c *fiber.Ctx) error {
 	return c.JSON(users)
 }
 
-func (r *UserRouterInterface) Me(c *fiber.Ctx) error {
+func (r *UserRouter) Me(c *fiber.Ctx) error {
 	user := c.Locals("user")
 	if user == nil {
 		return c.Status(401).SendString("Unauthorized - me")
 	}
 
 	return c.JSON(user)
+}
+
+func (r *UserRouter) Logout(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Now().Add(-time.Hour),
+		HTTPOnly: true,
+		Domain:   "disquette.kayn.ooo",
+		Secure:   true,
+	})
+
+	return c.SendStatus(200)
 }
