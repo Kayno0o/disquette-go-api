@@ -12,17 +12,14 @@ import (
 	"github.com/uptrace/bun"
 	"github.com/uptrace/bun/dialect/mysqldialect"
 	"github.com/uptrace/bun/extra/bundebug"
-	entity "go-api-test.kayn.ooo/Api/Entity"
 )
 
 var (
-	DB             *bun.DB
-	UserRepository = &UserRepositoryInterface{}
-	Ctx            = context.Background()
+	DB  *bun.DB
+	Ctx = context.Background()
 )
 
 type GenericRepositoryInterface interface {
-	Init()
 	FindOneById(entity interface{}, id int) error
 	FindOneBy(entity interface{}, params map[string]interface{}) error
 	FindAll(entities interface{}) error
@@ -36,7 +33,7 @@ type GenericRepository struct {
 	GenericRepositoryInterface
 }
 
-func (r *GenericRepository) Init() {
+func (r *GenericRepository) Init(entities []interface{}) {
 	dbURL := os.Getenv("DB_URL")
 	if dbURL == "" {
 		fmt.Println("DB_URL environment variable is required")
@@ -63,15 +60,12 @@ func (r *GenericRepository) Init() {
 		panic(err)
 	}
 
-	DB.RegisterModel(&entity.User{})
-	_, err = DB.NewCreateTable().Model(&entity.User{}).IfNotExists().Exec(Ctx)
-	if err != nil {
-		panic(err)
-	}
-
-	err = DB.ResetModel(Ctx, &entity.User{})
-	if err != nil {
-		panic(err)
+	for i := range entities {
+		DB.RegisterModel(&entities[i])
+		_, err := DB.NewCreateTable().Model(&entities[i]).IfNotExists().Exec(Ctx)
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 

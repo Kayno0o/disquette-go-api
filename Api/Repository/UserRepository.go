@@ -1,5 +1,9 @@
 package repository
 
-type UserRepositoryInterface struct {
+var (
+	UserRepository = &UserRepositoryStruct{}
+)
+
+type UserRepositoryStruct struct {
 	GenericRepository
 }
